@@ -40,6 +40,26 @@ papers = Arxivist.search(opt)
 # ...
 ```
 
+### Search by authors
+
+```crystal
+options = SearchOptions.new
+      authors = ["Owen", "Wilkinson", "Gillespie"]
+      options.add_author_terms(authors)
+
+    papers = Arxivist.search(options)
+
+	papers.each {|paper| puts(paper.to_s)}
+    
+# title: Scalable Inference for Markov Processes with Intractable Likelihoods, 
+# link: http://arxiv.org/abs/1403.6886v2, 
+# authors: Jamie Owen, Darren J. Wilkinson, Colin S. Gillespie
+
+# title: Likelihood free inference for Markov processes: a comparison, 
+# link: http://arxiv.org/abs/1410.0524v1, 
+# authors: Jamie Owen, Darren J. Wilkinson, Colin S. Gillespie
+```
+
 ## Development
 
 TODO

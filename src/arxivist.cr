@@ -29,40 +29,67 @@ module Arxivist
       self.node_to_text(links)
     end
 
+    def self.parse_authors(xml) : Array(Array(String?))
+      result = [] of Array(String?)
+      authors = xml.xpath("//atom:entry", namespaces: NAMESPACES)  as XML::NodeSet
+      authors.each do |author|
+        a = author.xpath("atom:author/atom:name", namespaces: NAMESPACES) as XML::NodeSet
+        result.push(a.map{|x| x.text})
+      end
+      result
+    end
+
 
   class SearchOptions
 
-    getter max_results, terms
+    getter max_results, title_terms
 
     setter max_results
 
     def initialize()
       @max_results = 10
-      @terms = [] of String
+      @title_terms = [] of String
+      @author_terms = [] of String
     end
 
-    def add_term(term : String)
+    {% for name in %w(title author) %}
+
+    def add_{{name.id}}_term(term : String)
+      @{{name.id}}_terms.push(term)
     end
 
-    def add_terms(terms : Array(String))
-      @terms.concat(terms)
+    def add_{{name.id}}_terms(terms : Array(String))
+      @{{name.id}}_terms.concat(terms)
     end
+
+    {% end %}
 
     def url
-      query_string = "all"
-      if !@terms.empty?
-        query_string += ":" + @terms.join("+AND+")
+      query_string = ""
+      if !(@title_terms.empty? && @author_terms.empty?)
+        if !@title_terms.empty?
+          query_string += @title_terms.map{|term| "ti:#{term}" }.join("+AND+")
+        end
+        if !@author_terms.empty?
+          query_string += @author_terms.map{|term| "au:#{term}" }.join("+AND+")
+        end
+
+      else
+        query_string = "all"
       end
       return "http://export.arxiv.org/api/query?search_query=#{query_string}&max_results=#{@max_results}"
     end
   end
 
   class Paper
-    def initialize(@title, @link)
+
+    getter title, link, authors
+
+    def initialize(@title, @link, @authors)
     end
 
     def to_s
-      return "title: #{@title}, link: #{@link}"
+      return "title: #{@title}, link: #{@link}, authors: #{@authors.join(", ")}"
     end
   end
 
@@ -74,11 +101,10 @@ module Arxivist
     xml = XML.parse(response.body)
     titles = self.parse_titles(xml)
     links = self.parse_urls(xml)
+    authors = self.parse_authors(xml)
     number_nodes = titles.size
-    (0...number_nodes).map do |n|
-      p = Paper.new titles[n], links[n]
-      puts(p.to_s)
-      p
+    return (0...number_nodes).map do |n|
+      Paper.new titles[n], links[n], authors[n]
     end
   end
 end
